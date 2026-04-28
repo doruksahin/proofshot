@@ -241,13 +241,13 @@ export async function execCommand(args: string[]): Promise<void> {
         process.stdout.write('\n');
       }
     }
-  } catch (error: any) {
-    // Print stderr and exit with the same code
-    const stderr = error?.stderr?.toString?.() || '';
-    const stdout = error?.stdout?.toString?.() || '';
+  } catch (error: unknown) {
+    const execErr = error as { stderr?: Buffer; stdout?: Buffer; status?: number; message?: string };
+    const stderr = execErr.stderr?.toString?.() || '';
+    const stdout = execErr.stdout?.toString?.() || '';
     if (stdout) process.stdout.write(stdout);
     if (stderr) process.stderr.write(stderr);
-    process.exit(error?.status || 1);
+    throw new Error(stderr || stdout || execErr.message || 'Command failed');
   }
 
   // If the action was `set viewport`, update cached viewport in session state
