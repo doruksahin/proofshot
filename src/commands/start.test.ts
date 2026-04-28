@@ -61,10 +61,6 @@ describe('startCommand', () => {
     vi.useFakeTimers();
     vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.spyOn(process, 'exit').mockImplementation(((code?: number) => {
-      throw new Error(`process.exit:${code ?? 0}`);
-    }) as never);
-
     mocks.loadConfig.mockReturnValue({
       output: './proofshot-artifacts',
       headless: true,
@@ -100,7 +96,7 @@ describe('startCommand', () => {
     const commandPromise = startCommand({}).catch((error) => error);
     await vi.runAllTimersAsync();
 
-    await expect(commandPromise).resolves.toMatchObject({ message: 'process.exit:1' });
+    await expect(commandPromise).resolves.toMatchObject({ message: expect.stringContaining('Failed to initialize recording') });
     expect(mocks.startRecording).toHaveBeenCalledTimes(3);
     expect(mocks.closeBrowser).toHaveBeenCalledTimes(1);
     expect(mocks.saveSession).not.toHaveBeenCalled();
@@ -114,7 +110,7 @@ describe('startCommand', () => {
     const commandPromise = startCommand({}).catch((error) => error);
     await vi.runAllTimersAsync();
 
-    await expect(commandPromise).resolves.toMatchObject({ message: 'process.exit:1' });
+    await expect(commandPromise).resolves.toMatchObject({ message: expect.stringContaining('Failed to initialize recording') });
     expect(mocks.startRecording).toHaveBeenCalledTimes(3);
     expect(mocks.closeBrowser).toHaveBeenCalledTimes(1);
   });
@@ -126,7 +122,7 @@ describe('startCommand', () => {
 
     const commandPromise = startCommand({}).catch((error) => error);
 
-    await expect(commandPromise).resolves.toMatchObject({ message: 'process.exit:1' });
+    await expect(commandPromise).resolves.toMatchObject({ message: expect.stringContaining('Failed to open browser') });
     expect(mocks.closeBrowser).toHaveBeenCalledTimes(1);
     expect(mocks.startRecording).not.toHaveBeenCalled();
     expect(mocks.saveSession).not.toHaveBeenCalled();

@@ -185,11 +185,7 @@ export async function execCommand(args: string[]): Promise<void> {
   const session = loadSession(outputDir);
 
   if (session && !session.recordingActive && !session.cdpMode) {
-    console.error(
-      'Error: Session has no active recording. Video capture is required.\n' +
-        'Run "proofshot stop" to end this session, then start a new one.',
-    );
-    process.exit(1);
+    throw new Error('Session has no active recording. Run "proofshot stop" to end this session, then start a new one.');
   }
 
   // Resolve args (screenshot path rewriting)

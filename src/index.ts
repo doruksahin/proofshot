@@ -1,4 +1,8 @@
-// Public API
+// Public API — commands
+export { startCommand } from './commands/start.js';
+export { execCommand } from './commands/exec.js';
+export { stopCommand } from './commands/stop.js';
+
 export { createCLI } from './cli.js';
 export { installCommand } from './commands/install.js';
 export { ensureDevServer } from './server/start.js';

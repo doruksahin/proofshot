@@ -61,12 +61,7 @@ export async function stopCommand(options: StopOptions): Promise<void> {
   // Load session state
   const session = loadSession(outputDir);
   if (!session) {
-    console.error(
-      chalk.red('✗') +
-        ' No active session found.\n' +
-        chalk.dim('Run "proofshot start" first.'),
-    );
-    process.exit(1);
+    throw new Error('No active session found. Run "proofshot start" first.');
   }
 
   const startTime = new Date(session.startedAt).getTime();

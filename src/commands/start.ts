@@ -100,12 +100,7 @@ export async function startCommand(options: StartOptions): Promise<void> {
       console.log(chalk.green('✓') + ' Connected to CDP browser');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error(
-        chalk.red('✗') +
-          ` Failed to connect to CDP: ${message}\n` +
-          chalk.dim('Make sure the target is running with --remote-debugging-port'),
-      );
-      process.exit(1);
+      throw new Error(`Failed to connect to CDP: ${message}`);
     }
   } else {
     if (options.run) {
@@ -121,8 +116,7 @@ export async function startCommand(options: StartOptions): Promise<void> {
         console.log(chalk.green('✓') + ` Dev server started on :${config.devServer.port}`);
         console.log(chalk.dim(`  Server logs → ${serverErrorLog}`));
       } catch (error: any) {
-        console.error(chalk.red('✗') + ` Failed to start dev server: ${error.message}`);
-        process.exit(1);
+        throw new Error(`Failed to start dev server: ${error.message}`);
       }
     } else {
       console.log(chalk.dim('No --run provided, assuming server is already running'));
@@ -137,12 +131,7 @@ export async function startCommand(options: StartOptions): Promise<void> {
       console.log(chalk.green('✓') + ' Browser ready');
     } catch (error: any) {
       closeBrowser();
-      console.error(
-        chalk.red('✗') +
-          ` Failed to open browser: ${error.message}\n` +
-          chalk.dim('Make sure agent-browser is installed: npm install -g agent-browser'),
-      );
-      process.exit(1);
+      throw new Error(`Failed to open browser: ${error.message}`);
     }
   }
 
@@ -207,16 +196,7 @@ export async function startCommand(options: StartOptions): Promise<void> {
 
     if (!recordingStarted) {
       closeBrowser();
-      console.error(
-        chalk.red('✗') +
-          ` Failed to initialize recording after ${RECORDING_RETRIES} attempts: ${lastError?.message}\n` +
-          chalk.dim('Recording is required — ProofShot cannot proceed without video capture.\n') +
-          chalk.dim('Troubleshooting:\n') +
-          chalk.dim('  1. Make sure agent-browser is installed and running\n') +
-          chalk.dim('  2. Try "proofshot clean" then re-run "proofshot start"\n') +
-          chalk.dim('  3. If the port was already in use, stop the old server first'),
-      );
-      process.exit(1);
+      throw new Error(`Failed to initialize recording after ${RECORDING_RETRIES} attempts: ${lastError?.message}`);
     }
   }
 
