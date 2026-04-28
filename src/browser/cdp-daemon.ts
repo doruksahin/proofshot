@@ -121,7 +121,7 @@ async function handleRequest(
       break;
 
     default:
-      respond(conn, { ok: false, error: `Unknown method: ${(req as Record<string, unknown>).method}` });
+      respond(conn, { ok: false, error: `Unknown method: ${String((req as unknown as Record<string, unknown>).method)}` });
   }
 }
 
