@@ -34,4 +34,15 @@ export default defineConfig([
       __PROOFSHOT_VERSION__: JSON.stringify(packageJson.version),
     },
   },
+  {
+    entry: { 'src/browser/cdp-daemon': 'src/browser/cdp-daemon.ts' },
+    format: ['esm'],
+    target: 'node18',
+    platform: 'node',
+    sourcemap: true,
+    shims: true,
+    banner: {
+      js: '#!/usr/bin/env node',
+    },
+  },
 ]);
