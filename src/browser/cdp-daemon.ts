@@ -13,7 +13,7 @@
  */
 import * as net from 'net';
 import * as fs from 'fs';
-import { chromium, type Page } from 'playwright';
+import { chromium, type Page } from 'playwright-core';
 import type { DaemonRequest, DaemonResponse } from './cdp-client.js';
 
 async function main(): Promise<void> {
@@ -66,7 +66,7 @@ async function main(): Promise<void> {
         return;
       }
 
-      handleRequest(req, page, conn);
+      handleRequest(req, page, conn, server);
     });
   });
 
@@ -89,15 +89,16 @@ async function main(): Promise<void> {
   process.on('SIGINT', () => { cleanup(); process.exit(0); });
 }
 
-function respond(conn: net.Socket, res: DaemonResponse): void {
+function respond(conn: net.Socket, res: DaemonResponse, onFlushed?: () => void): void {
   conn.write(JSON.stringify(res) + '\n');
-  conn.end();
+  conn.end(onFlushed);
 }
 
 async function handleRequest(
   req: DaemonRequest,
   page: Page,
   conn: net.Socket,
+  server: net.Server,
 ): Promise<void> {
   switch (req.method) {
     case 'ping':
@@ -108,20 +109,24 @@ async function handleRequest(
       try {
         await page.screencast.stop();
         process.stderr.write('daemon: stopped\n');
-        respond(conn, { ok: true });
-      } catch (err: any) {
-        respond(conn, { ok: false, error: err.message });
+        respond(conn, { ok: true }, () => {
+          server.close(() => process.exit(0));
+        });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        respond(conn, { ok: false, error: message }, () => {
+          server.close(() => process.exit(1));
+        });
       }
-      // Give the response time to flush to the client, then exit
-      setTimeout(() => process.exit(0), 200);
       break;
 
     default:
-      respond(conn, { ok: false, error: `Unknown method: ${(req as any).method}` });
+      respond(conn, { ok: false, error: `Unknown method: ${String((req as unknown as Record<string, unknown>).method)}` });
   }
 }
 
-main().catch((err) => {
-  process.stderr.write(`daemon: fatal — ${err.message}\n`);
+main().catch((err: unknown) => {
+  const message = err instanceof Error ? err.message : String(err);
+  process.stderr.write(`daemon: fatal — ${message}\n`);
   process.exit(1);
 });

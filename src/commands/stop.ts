@@ -110,8 +110,9 @@ export async function stopCommand(options: StopOptions): Promise<void> {
       } else {
         console.log(chalk.yellow('⚠') + ` Screencast stop: ${res.error}`);
       }
-    } catch (err: any) {
-      console.log(chalk.yellow('⚠') + ` Could not reach screencast daemon: ${err.message}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.log(chalk.yellow('⚠') + ` Could not reach screencast daemon: ${message}`);
     }
   } else if (!session.cdpMode) {
     stopRecording(session.sessionName);

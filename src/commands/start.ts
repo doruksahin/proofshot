@@ -96,12 +96,13 @@ export async function startCommand(options: StartOptions): Promise<void> {
   if (cdpMode) {
     console.log(chalk.dim(`Connecting to CDP endpoint: ${options.cdp}`));
     try {
-      connectBrowser(options.cdp!, config.viewport, sessionName);
+      await connectBrowser(options.cdp!, config.viewport, sessionName);
       console.log(chalk.green('✓') + ' Connected to CDP browser');
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       console.error(
         chalk.red('✗') +
-          ` Failed to connect to CDP: ${error.message}\n` +
+          ` Failed to connect to CDP: ${message}\n` +
           chalk.dim('Make sure the target is running with --remote-debugging-port'),
       );
       process.exit(1);
@@ -157,11 +158,7 @@ export async function startCommand(options: StartOptions): Promise<void> {
     // records via page.screencast, and listens on a Unix domain socket
     // for the stop command. No polling, no sentinels — proper IPC.
     try {
-      const thisDir = path.dirname(fileURLToPath(import.meta.url));
-      const distRoot = thisDir.includes('/src/')
-        ? thisDir.replace(/\/src\/.*/, '')
-        : path.join(thisDir, '..');
-      const daemonScript = path.join(distRoot, 'src', 'browser', 'cdp-daemon.js');
+      const daemonScript = fileURLToPath(import.meta.resolve('../browser/cdp-daemon.js'));
       const child = spawnProcess('node', [daemonScript, options.cdp!, videoPath, socketPath], {
         detached: true,
         stdio: ['ignore', 'ignore', 'pipe'],
@@ -176,11 +173,12 @@ export async function startCommand(options: StartOptions): Promise<void> {
       await waitForDaemon(socketPath);
       recordingStarted = true;
       console.log(chalk.green('✓') + ' Screencast recording started');
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       console.log(
         chalk.yellow('⚠') +
-          ` Screencast recording failed: ${error.message}\n` +
-          chalk.dim('  Ensure playwright is installed. Screenshots will still be captured.'),
+          ` Screencast recording failed: ${message}\n` +
+          chalk.dim('  Ensure playwright-core is installed: npm install playwright-core'),
       );
     }
   } else {

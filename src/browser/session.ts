@@ -1,4 +1,3 @@
-import { execSync } from 'child_process';
 import { ab, ProofShotError } from '../utils/exec.js';
 import type { BrowserConfig, ViewportConfig } from '../utils/config.js';
 
@@ -36,13 +35,15 @@ export function openBrowser(
  * Discover the first page WebSocket URL from a CDP HTTP endpoint.
  * e.g. http://localhost:9333 → ws://localhost:9333/devtools/page/ABC123
  */
-export function discoverPageWsUrl(cdpEndpoint: string): string {
+export async function discoverPageWsUrl(cdpEndpoint: string): Promise<string> {
   const listUrl = cdpEndpoint.replace(/\/$/, '') + '/json/list';
-  const raw = execSync(`curl -s ${listUrl}`, {
-    encoding: 'utf-8',
-    timeout: 5000,
-  });
-  const targets = JSON.parse(raw) as { type: string; webSocketDebuggerUrl: string }[];
+  const res = await fetch(listUrl, { signal: AbortSignal.timeout(5000) });
+  if (!res.ok) {
+    throw new ProofShotError(
+      `CDP endpoint returned ${res.status} at ${listUrl}. Is the app running with --remote-debugging-port?`,
+    );
+  }
+  const targets = (await res.json()) as { type: string; webSocketDebuggerUrl: string }[];
   const page = targets.find((t) => t.type === 'page');
   if (!page?.webSocketDebuggerUrl) {
     throw new ProofShotError(
@@ -56,12 +57,12 @@ export function discoverPageWsUrl(cdpEndpoint: string): string {
  * Connect to an existing browser via CDP HTTP endpoint.
  * Auto-discovers the page WebSocket URL from /json/list.
  */
-export function connectBrowser(
+export async function connectBrowser(
   cdpEndpoint: string,
   viewport: ViewportConfig,
   sessionName?: string,
-): void {
-  const wsUrl = discoverPageWsUrl(cdpEndpoint);
+): Promise<void> {
+  const wsUrl = await discoverPageWsUrl(cdpEndpoint);
   ab(`connect ${wsUrl}`, { timeoutMs: 60000, session: sessionName });
   ab(`set viewport ${viewport.width} ${viewport.height}`, { session: sessionName });
 }
