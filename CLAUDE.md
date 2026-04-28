@@ -2,7 +2,90 @@
 
 Visual verification tool for AI coding agents. Records browser sessions, captures screenshots, collects errors, and bundles proof artifacts.
 
-## Quick reference
+## Using ProofShot on projects
+
+### Install
+
+```bash
+npm install -g proofshot        # global install
+proofshot install                # installs skill files for Claude Code, Cursor, etc.
+```
+
+For Electron/CDP recording, also install: `npm install -g playwright-core`
+
+### Standard flow (web apps)
+
+```bash
+# 1. Start — opens headless Chromium, starts recording
+proofshot start --run "npm run dev" --description "verify login flow"
+# or if dev server is already running:
+proofshot start --url http://localhost:3000 --description "verify login flow"
+
+# 2. Interact
+proofshot exec snapshot -i                # list interactive elements
+proofshot exec click @e3                  # click element by ref
+proofshot exec fill @e2 "hello@test.com"  # fill input
+proofshot exec screenshot step-1.png      # capture screenshot
+proofshot exec navigate /dashboard        # go to route
+proofshot exec key Escape                 # press key
+
+# 3. Stop — bundles video, screenshots, error report, viewer
+proofshot stop
+
+# 4. (Optional) Post to GitHub PR
+proofshot pr
+```
+
+### Electron / CDP flow
+
+For Electron apps or any browser started with `--remote-debugging-port`:
+
+```bash
+# Start your Electron app with CDP enabled
+# e.g. electron-vite dev -- --remote-debugging-port=9333
+
+# Connect proofshot to the running app
+proofshot start --cdp http://localhost:9333 --description "verify feature"
+
+# Same exec commands — but now inside the real Electron process (IPC works)
+proofshot exec snapshot -i
+proofshot exec click @e2
+proofshot exec screenshot dialog.png
+
+# Stop — video is recorded via Playwright screencast daemon
+proofshot stop
+```
+
+### Key differences: `--url` vs `--cdp`
+
+| | `--url` | `--cdp` |
+|---|---|---|
+| Browser | ProofShot's headless Chromium | Your running Electron/Chrome |
+| IPC/native APIs | Not available | Works (real Electron process) |
+| Recording | agent-browser Playwright | Screencast daemon (VP8) |
+| Video trim | ffmpeg auto-trim | No trim (VP8 from screencast) |
+| App state | Fresh (no persisted data) | Real (your actual app data) |
+
+### Artifacts
+
+After `proofshot stop`, find everything in `proofshot-artifacts/<session>/`:
+
+- `viewer.html` — standalone HTML viewer with video + timeline + screenshots
+- `session.webm` — full session video
+- `*.png` — screenshots taken during session
+- `SUMMARY.md` — markdown report with error counts
+- `session-log.json` — timestamped action log
+
+### Tips
+
+- Always `proofshot exec snapshot -i` before clicking — refs change between snapshots
+- Use `--force` to override a stale session if a previous run crashed
+- `proofshot clean` removes all artifacts
+- `proofshot doctor` inspects environment and active session state
+
+## Development
+
+### Quick reference
 
 ```bash
 npm run build          # Build with tsup (must run after changes)
