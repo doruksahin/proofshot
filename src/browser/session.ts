@@ -32,37 +32,39 @@ export function openBrowser(
 }
 
 /**
- * Discover the first page WebSocket URL from a CDP HTTP endpoint.
- * e.g. http://localhost:9333 → ws://localhost:9333/devtools/page/ABC123
+ * Discover the browser-level WebSocket URL from a CDP HTTP endpoint.
+ * e.g. http://localhost:9333 → ws://localhost:9333/devtools/browser/ABC123
+ *
+ * agent-browser needs the browser-level endpoint (not page-level) to connect
+ * to Electron and other CDP targets.
  */
-export async function discoverPageWsUrl(cdpEndpoint: string): Promise<string> {
-  const listUrl = cdpEndpoint.replace(/\/$/, '') + '/json/list';
-  const res = await fetch(listUrl, { signal: AbortSignal.timeout(5000) });
+export async function discoverBrowserWsUrl(cdpEndpoint: string): Promise<string> {
+  const versionUrl = cdpEndpoint.replace(/\/$/, '') + '/json/version';
+  const res = await fetch(versionUrl, { signal: AbortSignal.timeout(5000) });
   if (!res.ok) {
     throw new ProofShotError(
-      `CDP endpoint returned ${res.status} at ${listUrl}. Is the app running with --remote-debugging-port?`,
+      `CDP endpoint returned ${res.status} at ${versionUrl}. Is the app running with --remote-debugging-port?`,
     );
   }
-  const targets = (await res.json()) as { type: string; webSocketDebuggerUrl: string }[];
-  const page = targets.find((t) => t.type === 'page');
-  if (!page?.webSocketDebuggerUrl) {
+  const info = (await res.json()) as { webSocketDebuggerUrl?: string };
+  if (!info.webSocketDebuggerUrl) {
     throw new ProofShotError(
-      `No page target found at ${cdpEndpoint}. Is the app running with --remote-debugging-port?`,
+      `No webSocketDebuggerUrl in ${versionUrl}. Is the app running with --remote-debugging-port?`,
     );
   }
-  return page.webSocketDebuggerUrl;
+  return info.webSocketDebuggerUrl;
 }
 
 /**
  * Connect to an existing browser via CDP HTTP endpoint.
- * Auto-discovers the page WebSocket URL from /json/list.
+ * Uses the browser-level WebSocket URL from /json/version.
  */
 export async function connectBrowser(
   cdpEndpoint: string,
   viewport: ViewportConfig,
   sessionName?: string,
 ): Promise<void> {
-  const wsUrl = await discoverPageWsUrl(cdpEndpoint);
+  const wsUrl = await discoverBrowserWsUrl(cdpEndpoint);
   ab(`connect ${wsUrl}`, { timeoutMs: 60000, session: sessionName });
   ab(`set viewport ${viewport.width} ${viewport.height}`, { session: sessionName });
 }
