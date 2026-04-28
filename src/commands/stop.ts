@@ -98,10 +98,29 @@ export async function stopCommand(options: StopOptions): Promise<void> {
 
   // Step 2: Stop recording
   console.log(chalk.dim('Stopping recording...'));
-  stopRecording(session.sessionName);
+  if (session.cdpMode && session.daemonSocketPath) {
+    // Send "stop" to the screencast daemon via Unix domain socket.
+    // The daemon awaits screencast.stop(), flushes the video, responds, then exits.
+    // We block on the socket read — no polling, no sentinels.
+    const { sendCommand } = await import('../browser/cdp-client.js');
+    try {
+      const res = await sendCommand(session.daemonSocketPath, { method: 'stop' }, 30000);
+      if (res.ok) {
+        console.log(chalk.green('✓') + ' Screencast recording saved');
+      } else {
+        console.log(chalk.yellow('⚠') + ` Screencast stop: ${res.error}`);
+      }
+    } catch (err: any) {
+      console.log(chalk.yellow('⚠') + ` Could not reach screencast daemon: ${err.message}`);
+    }
+  } else if (!session.cdpMode) {
+    stopRecording(session.sessionName);
+  }
 
-  // Step 3: Close browser (unless --no-close)
-  if (!options.noClose) {
+  // Step 3: Close browser (unless --no-close or CDP mode — we don't own the browser)
+  if (session.cdpMode) {
+    console.log(chalk.dim('CDP mode — leaving external browser running'));
+  } else if (!options.noClose) {
     console.log(chalk.dim('Closing browser...'));
     closeBrowser(session.sessionName);
   }
@@ -127,9 +146,10 @@ export async function stopCommand(options: StopOptions): Promise<void> {
   // Step 5.5: Trim video dead time
   const sessionLog = loadSessionLog(sessionDir);
   let trimOffsetSec = 0;
-  if (fs.existsSync(session.videoPath)) {
+  if (fs.existsSync(session.videoPath) && !session.cdpMode) {
+    // Skip trim for CDP recordings — ffmpeg -c copy can't seek VP9 from image2pipe
     trimOffsetSec = trimVideo(session.videoPath, screenshots, sessionDir, startTime, sessionLog);
-  } else if (session.recordingActive) {
+  } else if (session.recordingActive && !session.cdpMode) {
     console.log(
       chalk.yellow('⚠') +
         ' Recording was active but no video file was produced.\n' +

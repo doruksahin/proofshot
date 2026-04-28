@@ -36,6 +36,7 @@ export function createCLI(): Command {
     .option('--headed', 'Show browser window for debugging')
     .option('--output <dir>', 'Custom output directory')
     .option('--url <url>', 'Open this URL instead of the root')
+    .option('--cdp <endpoint>', 'Connect to an existing CDP endpoint, e.g. http://localhost:9333 (Electron, Chrome --remote-debugging-port)')
     .option('--force', 'Override a stale session without running stop first')
     .action(async (options) => {
       await startCommand(options);

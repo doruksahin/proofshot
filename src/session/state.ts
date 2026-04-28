@@ -15,6 +15,10 @@ export interface SessionState {
   serverCommand: string | null;
   serverAlreadyRunning: boolean;
   recordingActive: boolean;
+  /** Connected to an external browser via --cdp (don't close on stop). */
+  cdpMode: boolean;
+  /** Unix domain socket path for the CDP screencast daemon. */
+  daemonSocketPath?: string;
   viewport?: { width: number; height: number };
 }
 
