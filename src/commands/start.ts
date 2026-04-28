@@ -158,7 +158,7 @@ export async function startCommand(options: StartOptions): Promise<void> {
     // records via page.screencast, and listens on a Unix domain socket
     // for the stop command. No polling, no sentinels — proper IPC.
     try {
-      const daemonScript = fileURLToPath(import.meta.resolve('../browser/cdp-daemon.js'));
+      const daemonScript = fileURLToPath(new URL('../src/browser/cdp-daemon.js', import.meta.url));
       const child = spawnProcess('node', [daemonScript, options.cdp!, videoPath, socketPath], {
         detached: true,
         stdio: ['ignore', 'ignore', 'pipe'],

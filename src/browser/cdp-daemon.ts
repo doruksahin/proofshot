@@ -35,9 +35,10 @@ async function main(): Promise<void> {
     process.stderr.write('daemon: no browser context found\n');
     process.exit(1);
   }
-  const page = context.pages()[0];
+  // Skip DevTools pages — find the actual app page
+  const page = context.pages().find((p) => !p.url().startsWith('devtools://'));
   if (!page) {
-    process.stderr.write('daemon: no page found\n');
+    process.stderr.write('daemon: no app page found (only devtools pages)\n');
     process.exit(1);
   }
 
